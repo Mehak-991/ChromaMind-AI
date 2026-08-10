@@ -1,0 +1,101 @@
+import React from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useAuthStore } from '../store/useAuthStore';
+import { UserPlus } from 'lucide-react';
+
+const signupSchema = z.object({
+  fullName: z.string().min(2, { message: 'Enter your full name' }),
+  email: z.string().email({ message: 'Enter a valid email address' }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
+});
+
+type SignupFormValues = z.infer<typeof signupSchema>;
+
+export const Signup: React.FC = () => {
+  const { login } = useAuthStore();
+  const navigate = useNavigate();
+
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<SignupFormValues>({
+    resolver: zodResolver(signupSchema)
+  });
+
+  const onSubmit = async (data: SignupFormValues) => {
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    login({
+      id: 'u_dev_123',
+      email: data.email,
+      fullName: data.fullName,
+      role: 'user',
+    }, 'mock_jwt_token');
+    navigate('/dashboard');
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4 relative overflow-hidden">
+      <div className="absolute w-[400px] h-[400px] bg-brand-500/5 rounded-full blur-[100px] pointer-events-none" />
+
+      <div className="w-full max-w-md glass border border-slate-900 rounded-xl p-8 space-y-6">
+        <div className="text-center space-y-2">
+          <div className="w-12 h-12 rounded-lg bg-brand-500/10 border border-brand-500/20 text-brand-400 flex items-center justify-center mx-auto">
+            <UserPlus size={24} />
+          </div>
+          <h2 className="text-2xl font-bold">Register</h2>
+          <p className="text-xs text-slate-500">Create your color formulation account</p>
+        </div>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-400">Full Name</label>
+            <input
+              type="text"
+              {...register('fullName')}
+              className="w-full bg-slate-900 border border-slate-800 focus:border-brand-500 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none transition-colors"
+              placeholder="Dr. Carter"
+            />
+            {errors.fullName && <p className="text-[10px] text-red-400">{errors.fullName.message}</p>}
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-400">Email Address</label>
+            <input
+              type="email"
+              {...register('email')}
+              className="w-full bg-slate-900 border border-slate-800 focus:border-brand-500 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none transition-colors"
+              placeholder="name@company.com"
+            />
+            {errors.email && <p className="text-[10px] text-red-400">{errors.email.message}</p>}
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-400">Password</label>
+            <input
+              type="password"
+              {...register('password')}
+              className="w-full bg-slate-900 border border-slate-800 focus:border-brand-500 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none transition-colors"
+              placeholder="••••••••"
+            />
+            {errors.password && <p className="text-[10px] text-red-400">{errors.password.message}</p>}
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full py-2.5 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-500/50 text-white font-semibold rounded-lg text-sm transition-all shadow-lg shadow-brand-500/20"
+          >
+            {isSubmitting ? 'Registering...' : 'Register'}
+          </button>
+        </form>
+
+        <div className="text-center text-xs text-slate-500">
+          Already registered?{' '}
+          <Link to="/login" className="text-brand-400 hover:text-brand-300 font-semibold">
+            Sign In
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+};

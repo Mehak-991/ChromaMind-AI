@@ -1,0 +1,45 @@
+name: Monorepo Integration CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint-and-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install Python Linters
+        run: pip install black ruff isort
+
+      - name: Run Black formatter check
+        run: black --check apps/backend packages/ml-engine packages/agent-engine
+
+      - name: Run Ruff linter
+        run: ruff check apps/backend packages/ml-engine packages/agent-engine
+
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          cd apps/backend
+          pip install -r requirements.txt
+          pip install pytest
+      - name: Run Pytest suite
+        run: |
+          cd apps/backend
+          pytest tests/

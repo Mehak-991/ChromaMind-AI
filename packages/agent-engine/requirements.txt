@@ -1,0 +1,11 @@
+langgraph>=0.0.30
+langchain>=0.1.13
+langchain-google-genai>=1.0.1
+faiss-cpu>=1.8.0
+sentence-transformers>=2.6.1
+pydantic>=2.6.4
+redis>=5.0.3
+beautifulsoup4>=4.12.3
+pypdf>=4.1.0
+unstructured>=0.12.6
+pytest>=7.3.0
