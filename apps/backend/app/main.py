@@ -36,12 +36,12 @@ async def startup_event():
     import uuid
     async with AsyncSessionLocal() as session:
         default_id = uuid.UUID("00000000-0000-0000-0000-000000000000")
-        result = await session.execute(select(User).where(User.id == default_id))
+        result = await session.execute(select(User).where((User.id == default_id) | (User.email == "default_user@chromamind.ai")))
         user_record = result.scalars().first()
         if not user_record:
             default_user = User(
                 id=default_id,
-                email="admin@chromamind.ai",
+                email="default_user@chromamind.ai",
                 password_hash="hashed_admin",
                 full_name="Dr. Carter",
                 role="scientist"

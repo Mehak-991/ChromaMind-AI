@@ -6,7 +6,7 @@ from app.schemas.schemas import (
     UserCreate, UserResponse, UserLogin, Token,
     PredictionRequest, PredictionResponse,
     SettingsBase, SettingsResponse,
-    AssistantQueryRequest, AssistantQueryResponse
+    AssistantQueryRequest, AssistantQueryResponse, SaveRecipeRequest
 )
 from app.repositories.repositories import (
     UserRepository, PredictionRepository, SettingsRepository

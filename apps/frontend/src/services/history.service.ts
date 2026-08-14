@@ -9,4 +9,8 @@ export const historyService = {
     const response = await apiClient.get(`/history/${id}`);
     return response.data;
   },
+  async saveRecipe(recipe: any) {
+    const response = await apiClient.post('/history/save', recipe);
+    return response.data;
+  },
 };
