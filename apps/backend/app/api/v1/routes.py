@@ -89,6 +89,44 @@ async def chat(payload: AssistantQueryRequest):
     result = await service.query_rag_engine(payload)
     return result
 
+def get_prediction_repo(db: AsyncSession = Depends(get_db)):
+    return PredictionRepository(db)
+
+# --- History APIs ---
+@router.get("/history")
+async def get_history(page: int = 1, limit: int = 10, repo: PredictionRepository = Depends(get_prediction_repo)):
+    user_uuid = uuid.UUID("00000000-0000-0000-0000-000000000000")
+    records = await repo.get_history(user_uuid, page, limit)
+    items = []
+    for r in records:
+        items.append({
+            "id": str(r.id),
+            "target_hex": r.target_hex,
+            "delta_e": r.delta_e,
+            "created_at": r.created_at.isoformat() + "Z"
+        })
+    return {"items": items}
+
+@router.post("/history/save")
+async def save_recipe(payload: SaveRecipeRequest, repo: PredictionRepository = Depends(get_prediction_repo)):
+    from app.models.models import PredictionHistory
+    user_uuid = uuid.UUID("00000000-0000-0000-0000-000000000000")
+    
+    new_record = PredictionHistory(
+        user_id=user_uuid,
+        target_hex=payload.target_hex,
+        target_lab_l=payload.target_lab[0],
+        target_lab_a=payload.target_lab[1],
+        target_lab_b=payload.target_lab[2],
+        base_colors_config=payload.base_colors_config,
+        ml_predicted_ratios=payload.ml_predicted_ratios,
+        optimized_ratios=payload.optimized_ratios,
+        delta_e=payload.delta_e,
+        confidence_score=payload.confidence_score
+    )
+    saved = await repo.save(new_record)
+    return {"status": "success", "id": str(saved.id)}
+
 # --- Health Check APIs ---
 @router.get("/health")
 async def health():

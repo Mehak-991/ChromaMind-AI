@@ -94,3 +94,11 @@ class AssistantQueryRequest(BaseModel):
 class AssistantQueryResponse(BaseModel):
     response: str
     citations: List[Dict[str, Any]]
+class SaveRecipeRequest(BaseModel):
+    target_hex: str
+    target_lab: List[float]
+    base_colors_config: List[Dict[str, Any]]
+    ml_predicted_ratios: List[float]
+    optimized_ratios: List[float]
+    delta_e: float
+    confidence_score: float

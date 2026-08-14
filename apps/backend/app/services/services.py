@@ -339,59 +339,8 @@ class PredictionService:
             "summary": "Physically realistic Kubelka-Munk mixture optimized to minimize CIEDE2000 color difference."
         }
 
-        prediction_id = uuid.uuid4()
-
-        # Database save logic with foreign key safety check
-        try:
-            from app.models.models import User, PredictionHistory
-            from sqlalchemy.future import select
-            
-            # Fetch or create default user to avoid foreign key errors
-            result = await self.repo.db.execute(select(User))
-            db_user = result.scalars().first()
-            if not db_user:
-                db_user = User(
-                    email="admin@chromamind.ai",
-                    password_hash="hashed_admin",
-                    full_name="Admin",
-                    role="admin"
-                )
-                self.repo.db.add(db_user)
-                await self.repo.db.commit()
-                await self.repo.db.refresh(db_user)
-                
-            actual_user_id = db_user.id
-            
-            # Convert request colors list to standard serializable format
-            base_colors_list = [
-                {
-                    "id": c.id,
-                    "hex": c.hex,
-                    "lab": {"L": c.lab.L, "a": c.lab.a, "b": c.lab.b},
-                    "name": c.name
-                } for c in request.base_colors
-            ]
-            
-            db_record = PredictionHistory(
-                id=prediction_id,
-                user_id=actual_user_id,
-                target_hex=request.target_color.hex,
-                target_lab_l=request.target_color.lab.L,
-                target_lab_a=request.target_color.lab.a,
-                target_lab_b=request.target_color.lab.b,
-                base_colors_config=base_colors_list,
-                ml_predicted_ratios=seed,
-                optimized_ratios=optimized,
-                delta_e=delta_e,
-                confidence_score=confidence_score
-            )
-            await self.repo.save(db_record)
-        except Exception as e:
-            # Fallback gracefully if database connection issues arise
-            print("Database save error:", e)
-
         return {
-            "prediction_id": prediction_id,
+            "prediction_id": uuid.uuid4(),
             "target_color": request.target_color.dict(),
             "formulation": formulation,
             "explanation": explanation

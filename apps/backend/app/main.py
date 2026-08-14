@@ -30,6 +30,24 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 async def startup_event():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        
+    from sqlalchemy import select
+    from app.core.database import AsyncSessionLocal
+    import uuid
+    async with AsyncSessionLocal() as session:
+        default_id = uuid.UUID("00000000-0000-0000-0000-000000000000")
+        result = await session.execute(select(User).where(User.id == default_id))
+        user_record = result.scalars().first()
+        if not user_record:
+            default_user = User(
+                id=default_id,
+                email="admin@chromamind.ai",
+                password_hash="hashed_admin",
+                full_name="Dr. Carter",
+                role="scientist"
+            )
+            session.add(default_user)
+            await session.commit()
 
 @app.get("/")
 async def root():

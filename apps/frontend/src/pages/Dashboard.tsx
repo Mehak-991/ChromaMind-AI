@@ -11,122 +11,9 @@ export const Dashboard: React.FC = () => {
   const { runPrediction, isLoading } = usePrediction();
   const { predictionResult, error } = useColorStore();
   const [newColorHex, setNewColorHex] = useState('#ff5555');
-  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const handleAddBase = () => {
     addBaseColor(newColorHex);
-  };
-
-  const handleExportPDF = () => {
-    if (!predictionResult) return;
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    
-    const recipeRows = predictionResult.ratios.map(item => {
-      const base = baseColors.find(c => c.name === item.pigment || c.id === item.pigment);
-      return `
-        <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #ddd; display: flex; align-items: center; gap: 8px;">
-            <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ${base?.hex || '#ccc'}; border: 1px solid #888;"></span>
-            ${item.pigment}
-          </td>
-          <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right; font-family: monospace;">${(item.ratio * 100).toFixed(2)}%</td>
-          <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right; font-family: monospace;">${item.weightGrams.toFixed(2)}g</td>
-        </tr>
-      `;
-    }).join('');
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>ChromaMind AI - Paint Formulation Recipe</title>
-          <style>
-            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; padding: 40px; line-height: 1.6; }
-            .header { display: flex; justify-content: space-between; border-bottom: 3px solid #0e91eb; padding-bottom: 20px; margin-bottom: 30px; }
-            .title { font-size: 24px; font-weight: bold; margin: 0; }
-            .metadata { font-size: 12px; color: #666; margin-top: 5px; }
-            .section { margin-bottom: 30px; }
-            .section-title { font-size: 16px; font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 15px; }
-            .color-compare { display: flex; gap: 20px; margin-bottom: 20px; }
-            .color-box-container { flex: 1; border: 1px solid #ddd; border-radius: 6px; padding: 15px; text-align: center; background: #f9f9f9; }
-            .color-swatch { width: 80px; height: 80px; margin: 0 auto 10px; border-radius: 6px; border: 1px solid #bbb; }
-            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-            th { background: #f4f4f4; padding: 10px; text-align: left; font-size: 12px; font-weight: bold; border-bottom: 2px solid #ddd; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-             <div>
-               <h1 class="title">ChromaMind AI Paint Recipe</h1>
-               <div class="metadata">Formulation ID: ${predictionResult.predictionId}</div>
-               <div class="metadata">Date Generated: ${new Date().toLocaleString()}</div>
-             </div>
-             <div style="text-align: right;">
-               <div style="font-weight: bold; color: #0e91eb; font-size: 18px;">ChromaMind AI</div>
-               <div style="font-size: 11px; color: #888;">Intelligent Pigment Optimizer</div>
-             </div>
-          </div>
-          
-          <div class="section">
-            <h2 class="section-title">Color Match Analysis</h2>
-            <div class="color-compare">
-              <div class="color-box-container">
-                <div class="color-swatch" style="background-color: ${targetColor.hex};"></div>
-                <div style="font-weight: bold; font-size: 14px;">Target Color</div>
-                <div style="font-family: monospace; font-size: 12px; color: #555;">${targetColor.hex.toUpperCase()}</div>
-              </div>
-              <div class="color-box-container">
-                <div class="color-swatch" style="background-color: ${predictionResult.predictedHex};"></div>
-                <div style="font-weight: bold; font-size: 14px;">Predicted Mixture</div>
-                <div style="font-family: monospace; font-size: 12px; color: #555;">${predictionResult.predictedHex.toUpperCase()}</div>
-              </div>
-            </div>
-            <table style="width: 100%; font-size: 13px;">
-              <tr>
-                <td><strong>CIEDE2000 Delta E:</strong> ${predictionResult.deltaE.toFixed(2)} (${predictionResult.status})</td>
-                <td style="text-align: right;"><strong>Match Confidence:</strong> ${predictionResult.confidenceScore.toFixed(1)}%</td>
-              </tr>
-            </table>
-          </div>
-
-          <div class="section">
-            <h2 class="section-title">Formulation Recipe (Total: 100g)</h2>
-            <table>
-              <thead>
-                <tr>
-                  <th>Pigment Base</th>
-                  <th style="text-align: right;">Ratio %</th>
-                  <th style="text-align: right;">Weight (grams)</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${recipeRows}
-               </tbody>
-            </table>
-          </div>
-
-          <div class="section">
-            <h2 class="section-title">AI System Explanation</h2>
-            <p style="font-size: 12px; color: #555; font-style: italic;">
-              ${predictionResult.explanation.summary}
-            </p>
-          </div>
-          
-          <script>
-            window.onload = function() {
-              window.print();
-              setTimeout(function() { window.close(); }, 500);
-            };
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-  };
-
-  const handleSaveRecipe = () => {
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 3000);
   };
 
   // Real-time updates whenever Target Color or Base Pigments change
@@ -416,26 +303,13 @@ export const Dashboard: React.FC = () => {
             </div>
 
             {predictionResult && (
-              <div className="border-t border-slate-200 dark:border-slate-800/60 pt-4 flex flex-col gap-3 mt-6">
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleExportPDF}
-                    className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-xs font-semibold rounded-lg transition-all text-center text-slate-700 dark:text-slate-300"
-                  >
-                    Export PDF
-                  </button>
-                  <button
-                    onClick={handleSaveRecipe}
-                    className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-xs font-semibold rounded-lg transition-all text-center text-slate-700 dark:text-slate-300"
-                  >
-                    Save Recipe
-                  </button>
-                </div>
-                {saveSuccess && (
-                  <span className="text-[10px] text-green-500 font-semibold text-center animate-pulse">
-                    Recipe saved to formulation history!
-                  </span>
-                )}
+              <div className="border-t border-slate-200 dark:border-slate-800/60 pt-4 flex gap-3 mt-6">
+                <button className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-xs font-semibold rounded-lg transition-all text-center text-slate-700 dark:text-slate-300">
+                  Export PDF
+                </button>
+                <button className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-xs font-semibold rounded-lg transition-all text-center text-slate-700 dark:text-slate-300">
+                  Save Recipe
+                </button>
               </div>
             )}
           </div>
