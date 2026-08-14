@@ -33,23 +33,29 @@ export const usePrediction = () => {
       
       // Fallback local calculations in case server is not running
       const mockRatios = baseColors.map((c, i) => {
-        if (i === 0) return { baseId: c.id, ratio: 0.1, weightGrams: 10.0 };
-        if (i === 1) return { baseId: c.id, ratio: 0.4, weightGrams: 40.0 };
-        if (i === 2) return { baseId: c.id, ratio: 0.3, weightGrams: 30.0 };
-        return { baseId: c.id, ratio: 0.2 / (baseColors.length - 3), weightGrams: 20.0 };
+        let ratio = 0.0;
+        if (i === 0) ratio = 0.15;
+        else if (i === 1) ratio = 0.45;
+        else if (i === 2) ratio = 0.30;
+        else ratio = 0.10 / (baseColors.length - 3);
+        return { pigment: c.name || c.id, ratio: ratio, weightGrams: ratio * 100.0 };
       });
       
       const mockResult = {
         predictionId: 'p_mock_' + Math.random().toString(36).substr(2, 9),
         ratios: mockRatios,
-        deltaE: 0.35 + Math.random() * 0.5,
-        confidenceScore: 0.965,
+        deltaE: 1.45,
+        confidenceScore: 0.88,
+        predictedRgb: [79, 130, 174] as [number, number, number],
+        predictedHex: '#4f82ae',
+        predictedLab: [53.1, -6.21, -24.82] as [number, number, number],
+        status: 'Very Good Match',
         explanation: {
           shapValues: baseColors.reduce((acc, c, i) => {
             acc[c.id] = i === 1 ? 0.45 : i === 2 ? 0.28 : -0.15;
             return acc;
           }, {} as Record<string, number>),
-          summary: "Based on local color model, the mix combines base pigments with low Delta E difference."
+          summary: "Based on local fallback simulation, the mix combines pigments to minimize delta E."
         }
       };
 

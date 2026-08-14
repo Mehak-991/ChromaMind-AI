@@ -19,13 +19,17 @@ export const predictionService = {
     const response = await apiClient.post('/formulator/predict', payload);
     return {
       predictionId: response.data.prediction_id,
-      ratios: response.data.formulation.base_ratios.map((item: any) => ({
-        baseId: item.id,
+      ratios: response.data.formulation.ratios.map((item: any) => ({
+        pigment: item.pigment,
         ratio: item.ratio,
         weightGrams: item.weight_grams,
       })),
       deltaE: response.data.formulation.delta_e,
-      confidenceScore: response.data.formulation.confidence_score,
+      confidenceScore: response.data.formulation.confidence,
+      predictedRgb: response.data.formulation.predicted_rgb,
+      predictedHex: response.data.formulation.predicted_hex,
+      predictedLab: response.data.formulation.predicted_lab,
+      status: response.data.formulation.status,
       explanation: {
         shapValues: response.data.explanation.shap_values,
         summary: response.data.explanation.summary,

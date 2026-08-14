@@ -58,6 +58,7 @@ class BaseColorInput(BaseModel):
     id: str
     hex: str = Field(..., min_length=4, max_length=7)
     lab: LabColor
+    name: Optional[str] = None
 
 class TargetColorInput(BaseModel):
     hex: str = Field(..., min_length=4, max_length=7)

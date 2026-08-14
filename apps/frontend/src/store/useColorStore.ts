@@ -9,9 +9,13 @@ export interface Color {
 
 export interface FormulationResult {
   predictionId: string;
-  ratios: Array<{ baseId: string; ratio: number; weightGrams: number }>;
+  ratios: Array<{ pigment: string; ratio: number; weightGrams: number }>;
   deltaE: number;
   confidenceScore: number;
+  predictedRgb: [number, number, number];
+  predictedHex: string;
+  predictedLab: [number, number, number];
+  status: string;
   explanation: {
     shapValues: Record<string, number>;
     summary: string;
