@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.models.models import User, UserSession, PredictionHistory, UserSettings
 from uuid import UUID
-from datetime import datetime
+
 
 class UserRepository:
     def __init__(self, db: AsyncSession):
@@ -30,7 +30,9 @@ class SessionRepository:
         return session
 
     async def get_session(self, token: str) -> UserSession | None:
-        result = await self.db.execute(select(UserSession).where(UserSession.refresh_token == token))
+        result = await self.db.execute(
+            select(UserSession).where(UserSession.refresh_token == token)
+        )
         return result.scalars().first()
 
     async def delete_session(self, token: str) -> None:
@@ -51,10 +53,14 @@ class PredictionRepository:
         return record
 
     async def get_by_id(self, prediction_id: UUID) -> PredictionHistory | None:
-        result = await self.db.execute(select(PredictionHistory).where(PredictionHistory.id == prediction_id))
+        result = await self.db.execute(
+            select(PredictionHistory).where(PredictionHistory.id == prediction_id)
+        )
         return result.scalars().first()
 
-    async def get_history(self, user_id: UUID, page=1, limit=10) -> list[PredictionHistory]:
+    async def get_history(
+        self, user_id: UUID, page=1, limit=10
+    ) -> list[PredictionHistory]:
         offset = (page - 1) * limit
         result = await self.db.execute(
             select(PredictionHistory)
@@ -77,7 +83,9 @@ class SettingsRepository:
         self.db = db
 
     async def get_by_user_id(self, user_id: UUID) -> UserSettings | None:
-        result = await self.db.execute(select(UserSettings).where(UserSettings.user_id == user_id))
+        result = await self.db.execute(
+            select(UserSettings).where(UserSettings.user_id == user_id)
+        )
         return result.scalars().first()
 
     async def update(self, settings_obj: UserSettings) -> UserSettings:

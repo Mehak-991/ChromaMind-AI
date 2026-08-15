@@ -1,12 +1,12 @@
-from typing import List, Dict, Any, TypedDict, Annotated
-import operator
+from typing import List, Dict, Any, TypedDict
+
 
 class AgentState(TypedDict):
     user_query: str
     conversation_history: List[Dict[str, str]]
     retrieved_documents: List[str]
     intent: str
-    
+
     # ML contexts passed from outside prediction requests
     ml_prediction: Dict[str, Any]
     shap_explanation: Dict[str, Any]
