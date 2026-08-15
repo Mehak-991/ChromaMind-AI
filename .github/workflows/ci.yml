@@ -18,7 +18,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install Python Linters
-        run: pip install black ruff isort
+        run: pip install black==26.5.1 ruff==0.6.9 isort==5.13.2
 
       - name: Run Black formatter check
         run: black --check apps/backend packages/ml-engine packages/agent-engine
