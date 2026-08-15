@@ -5,19 +5,25 @@ from src.tools.color_tools import ColorAgentTools
 from langchain_google_genai import ChatGoogleGenerativeAI
 from typing import Dict, Any
 
+
 class AgentNodes:
     def __init__(self):
         # Initialize Gemini API client
         self.llm = ChatGoogleGenerativeAI(
             model="gemini-pro",
-            google_api_key=os.getenv("GEMINI_API_KEY", "AIzaSyD_ExampleKey12345")
+            google_api_key=os.getenv("GEMINI_API_KEY", "AIzaSyD_ExampleKey12345"),
         )
         self.retriever_builder = RAGIndexBuilder()
 
     async def classify_intent(self, state: AgentState) -> Dict[str, Any]:
         query = state["user_query"].lower()
         intent = "general"
-        if "why" in query or "ratio" in query or "shap" in query or "prediction" in query:
+        if (
+            "why" in query
+            or "ratio" in query
+            or "shap" in query
+            or "prediction" in query
+        ):
             intent = "explain_ml"
         elif "palette" in query or "match" in query:
             intent = "palette_recommendation"
@@ -33,7 +39,7 @@ class AgentNodes:
         intent = state.get("intent", "general")
         docs = state.get("retrieved_documents", [])
         ml_context = state.get("ml_prediction", {})
-        
+
         # Build strict prompt enforcing RAG boundaries & target predictions isolation
         prompt = f"""You are ChromaMind AI Copilot. Use the context to answer the user query.
         
@@ -50,13 +56,10 @@ class AgentNodes:
 
         # Call LLM
         response = self.llm.invoke(prompt)
-        
+
         # Simple rule-based palette recommendation append
         palette = []
         if intent == "palette_recommendation":
             palette = ColorAgentTools.generate_palette("#3a86c8")
 
-        return {
-            "final_response": response.content,
-            "recommended_palette": palette
-        }
+        return {"final_response": response.content, "recommended_palette": palette}
