@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuthStore } from '../store/useAuthStore';
 import { UserPlus } from 'lucide-react';
+import apiClient from '../services/apiClient';
 
 const signupSchema = z.object({
   fullName: z.string().min(2, { message: 'Enter your full name' }),
@@ -23,14 +24,32 @@ export const Signup: React.FC = () => {
   });
 
   const onSubmit = async (data: SignupFormValues) => {
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    login({
-      id: 'u_dev_123',
-      email: data.email,
-      fullName: data.fullName,
-      role: 'user',
-    }, 'mock_jwt_token');
-    navigate('/dashboard');
+    try {
+      await apiClient.post('/auth/register', {
+        email: data.email,
+        password: data.password,
+        full_name: data.fullName,
+      });
+      // Automatically login after successful registration
+      const loginResponse = await apiClient.post('/auth/login', {
+        email: data.email,
+        password: data.password,
+      });
+      
+      const { access_token, user } = loginResponse.data;
+      
+      login({
+        id: user.id,
+        email: user.email,
+        fullName: user.full_name,
+        role: user.role,
+      }, access_token);
+      
+      navigate('/dashboard');
+    } catch (error: any) {
+      console.error('Signup failed', error);
+      alert(error.response?.data?.detail || 'Signup failed');
+    }
   };
 
   return (

@@ -15,6 +15,9 @@ from app.services.services import (
     PredictionService, MLService, OptimizationService, ExplainabilityService, AssistantService
 )
 import uuid
+from app.models.models import User
+from app.core.security import get_password_hash, verify_password, create_access_token
+from app.api.deps import get_current_user
 
 router = APIRouter()
 
@@ -43,7 +46,7 @@ async def register(payload: UserCreate, repo: UserRepository = Depends(get_user_
     from app.models.models import User
     new_user = User(
         email=payload.email,
-        password_hash="hashed_" + payload.password,  # Placeholder hashing
+        password_hash=get_password_hash(payload.password),
         full_name=payload.full_name,
         role="user"
     )
@@ -53,27 +56,25 @@ async def register(payload: UserCreate, repo: UserRepository = Depends(get_user_
 @router.post("/auth/login", response_model=Token)
 async def login(payload: UserLogin, repo: UserRepository = Depends(get_user_repo)):
     user = await repo.get_by_email(payload.email)
-    if not user or user.password_hash != "hashed_" + payload.password:
+    if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=400, detail="Incorrect email or password")
-    return {"access_token": "mock_jwt_token", "token_type": "bearer"}
+    
+    access_token = create_access_token(subject=str(user.id))
+    return {"access_token": access_token, "token_type": "bearer", "user": user}
 
 # --- Prediction APIs ---
 @router.post("/formulator/predict", response_model=PredictionResponse)
-async def predict(payload: PredictionRequest, service: PredictionService = Depends(get_prediction_service)):
-    # Mock logged-in user id
-    user_uuid = uuid.uuid4()
-    result = await service.execute_formulation(payload, user_uuid)
+async def predict(payload: PredictionRequest, service: PredictionService = Depends(get_prediction_service), current_user: User = Depends(get_current_user)):
+    result = await service.execute_formulation(payload, current_user.id)
     return result
 
 # --- Settings APIs ---
 @router.patch("/settings", response_model=SettingsResponse)
-async def update_settings(payload: SettingsBase, repo: SettingsRepository = Depends(get_settings_repo)):
+async def update_settings(payload: SettingsBase, repo: SettingsRepository = Depends(get_settings_repo), current_user: User = Depends(get_current_user)):
     from app.models.models import UserSettings
-    # Mock user UUID
-    user_uuid = uuid.uuid4()
-    settings_obj = await repo.get_by_user_id(user_uuid)
+    settings_obj = await repo.get_by_user_id(current_user.id)
     if not settings_obj:
-        settings_obj = UserSettings(user_id=user_uuid)
+        settings_obj = UserSettings(user_id=current_user.id)
     
     settings_obj.default_delta_e_threshold = payload.default_delta_e_threshold
     settings_obj.optimizer_max_iterations = payload.optimizer_max_iterations
@@ -84,7 +85,7 @@ async def update_settings(payload: SettingsBase, repo: SettingsRepository = Depe
 
 # --- Assistant Chat APIs ---
 @router.post("/rag/chat", response_model=AssistantQueryResponse)
-async def chat(payload: AssistantQueryRequest):
+async def chat(payload: AssistantQueryRequest, current_user: User = Depends(get_current_user)):
     service = AssistantService()
     result = await service.query_rag_engine(payload)
     return result
@@ -94,9 +95,8 @@ def get_prediction_repo(db: AsyncSession = Depends(get_db)):
 
 # --- History APIs ---
 @router.get("/history")
-async def get_history(page: int = 1, limit: int = 10, repo: PredictionRepository = Depends(get_prediction_repo)):
-    user_uuid = uuid.UUID("00000000-0000-0000-0000-000000000000")
-    records = await repo.get_history(user_uuid, page, limit)
+async def get_history(page: int = 1, limit: int = 10, repo: PredictionRepository = Depends(get_prediction_repo), current_user: User = Depends(get_current_user)):
+    records = await repo.get_history(current_user.id, page, limit)
     items = []
     for r in records:
         items.append({
@@ -108,12 +108,11 @@ async def get_history(page: int = 1, limit: int = 10, repo: PredictionRepository
     return {"items": items}
 
 @router.post("/history/save")
-async def save_recipe(payload: SaveRecipeRequest, repo: PredictionRepository = Depends(get_prediction_repo)):
+async def save_recipe(payload: SaveRecipeRequest, repo: PredictionRepository = Depends(get_prediction_repo), current_user: User = Depends(get_current_user)):
     from app.models.models import PredictionHistory
-    user_uuid = uuid.UUID("00000000-0000-0000-0000-000000000000")
     
     new_record = PredictionHistory(
-        user_id=user_uuid,
+        user_id=current_user.id,
         target_hex=payload.target_hex,
         target_lab_l=payload.target_lab[0],
         target_lab_a=payload.target_lab[1],

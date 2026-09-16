@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuthStore } from '../store/useAuthStore';
 import { Shield } from 'lucide-react';
+import apiClient from '../services/apiClient';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Enter a valid email address' }),
@@ -22,15 +23,26 @@ export const Login: React.FC = () => {
   });
 
   const onSubmit = async (data: LoginFormValues) => {
-    // Mimic API latency
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    login({
-      id: 'u_dev_123',
-      email: data.email,
-      fullName: 'Dr. Sarah Carter',
-      role: 'scientist',
-    }, 'mock_jwt_token');
-    navigate('/dashboard');
+    try {
+      const response = await apiClient.post('/auth/login', {
+        email: data.email,
+        password: data.password,
+      });
+      const { access_token, user } = response.data;
+      
+      login({
+        id: user.id,
+        email: user.email,
+        fullName: user.full_name,
+        role: user.role,
+      }, access_token);
+      
+      navigate('/dashboard');
+    } catch (error: any) {
+      console.error('Login failed', error);
+      // In a real app we'd display this error to the user
+      alert(error.response?.data?.detail || 'Login failed');
+    }
   };
 
   return (
