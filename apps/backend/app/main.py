@@ -3,9 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.routes import router as api_router
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.models.models import (
-    User,
-)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -33,7 +30,6 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 async def startup_event():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-
 
 
 @app.get("/")
