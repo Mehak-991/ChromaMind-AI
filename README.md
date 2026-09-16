@@ -68,14 +68,30 @@ For a comprehensive deep dive into the architecture, please refer to:
    git clone https://github.com/your-org/chromamind-ai.git
    cd chromamind-ai
    ```
-2. Copy environment variables template:
+2. Start the database dependencies via Docker Compose (requires Docker to be running):
    ```bash
+   docker-compose up -d postgres redis
+   ```
+3. Copy the environment variables template and start the Backend:
+   ```bash
+   # Terminal 1
+   cd apps/backend
    cp .env.example .env
+   pip install -r requirements.txt
+   uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
    ```
-3. Start the entire local development stack:
+4. Start the Frontend in a separate terminal:
    ```bash
-   docker-compose up --build
+   # Terminal 2
+   cd apps/frontend
+   npm install
+   npm run dev
    ```
+
+**Backend Diagnostics:**
+- API: http://localhost:8000
+- Docs: http://localhost:8000/docs
+- Health: http://localhost:8000/health
 
 ---
 
