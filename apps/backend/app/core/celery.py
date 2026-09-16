@@ -2,9 +2,7 @@ from celery import Celery
 from app.core.config import settings
 
 celery_app = Celery(
-    "chromamind_tasks",
-    broker=settings.REDIS_URL,
-    backend=settings.REDIS_URL
+    "chromamind_tasks", broker=settings.REDIS_URL, backend=settings.REDIS_URL
 )
 
 celery_app.conf.update(
@@ -14,6 +12,7 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
 )
+
 
 @celery_app.task(name="prediction_queue_task")
 def process_formulation_task(task_data: dict):

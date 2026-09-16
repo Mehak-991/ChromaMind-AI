@@ -1,12 +1,22 @@
 import uuid
-from sqlalchemy import Column, String, Boolean, Float, Integer, ForeignKey, DateTime, Text
+from sqlalchemy import (
+    Column,
+    String,
+    Boolean,
+    Float,
+    Integer,
+    ForeignKey,
+    DateTime,
+    Text,
+)
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.core.database import Base
 
+
 class User(Base):
-    __tablename__ = 'users'
+    __tablename__ = "users"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = Column(String, unique=True, index=True, nullable=False)
@@ -16,16 +26,27 @@ class User(Base):
     role = Column(String, default="user")  # admin, scientist, user
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    predictions = relationship("PredictionHistory", back_populates="user", cascade="all, delete-orphan")
-    settings = relationship("UserSettings", back_populates="user", uselist=False, cascade="all, delete-orphan")
-    sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
+    predictions = relationship(
+        "PredictionHistory", back_populates="user", cascade="all, delete-orphan"
+    )
+    settings = relationship(
+        "UserSettings",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    sessions = relationship(
+        "UserSession", back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class UserSession(Base):
-    __tablename__ = 'user_sessions'
+    __tablename__ = "user_sessions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
+    user_id = Column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
     refresh_token = Column(String, unique=True, index=True, nullable=False)
     expires_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -34,10 +55,12 @@ class UserSession(Base):
 
 
 class PredictionHistory(Base):
-    __tablename__ = 'predictions'
+    __tablename__ = "predictions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
+    user_id = Column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
     target_hex = Column(String(7), nullable=False)
     target_lab_l = Column(Float, nullable=False)
     target_lab_a = Column(Float, nullable=False)
@@ -50,14 +73,24 @@ class PredictionHistory(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="predictions")
-    feedback = relationship("Feedback", back_populates="prediction", uselist=False, cascade="all, delete-orphan")
+    feedback = relationship(
+        "Feedback",
+        back_populates="prediction",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
 
 
 class UserSettings(Base):
-    __tablename__ = 'user_settings'
+    __tablename__ = "user_settings"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id', ondelete="CASCADE"), unique=True, nullable=False)
+    user_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+    )
     default_delta_e_threshold = Column(Float, default=1.0)
     optimizer_max_iterations = Column(Integer, default=1000)
     enable_explainability = Column(Boolean, default=True)
@@ -66,10 +99,15 @@ class UserSettings(Base):
 
 
 class Feedback(Base):
-    __tablename__ = 'feedback'
+    __tablename__ = "feedback"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    prediction_id = Column(UUID(as_uuid=True), ForeignKey('predictions.id', ondelete="CASCADE"), unique=True, nullable=False)
+    prediction_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("predictions.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+    )
     rating = Column(Integer, nullable=False)  # 1-5
     user_comment = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -78,7 +116,7 @@ class Feedback(Base):
 
 
 class Analytics(Base):
-    __tablename__ = 'analytics'
+    __tablename__ = "analytics"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     event_type = Column(String, index=True, nullable=False)  # formulate_run, chat_run
@@ -87,7 +125,7 @@ class Analytics(Base):
 
 
 class ApiLog(Base):
-    __tablename__ = 'api_logs'
+    __tablename__ = "api_logs"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     path = Column(String, nullable=False)

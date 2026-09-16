@@ -9,22 +9,24 @@ from app.repositories.repositories import PredictionRepository
 
 # --- Color Conversion Helpers ---
 
-def lab_to_xyz(l: float, a: float, b: float) -> Tuple[float, float, float]:
+
+def lab_to_xyz(l_value: float, a: float, b: float) -> Tuple[float, float, float]:
     xn, yn, zn = 0.95047, 1.00000, 1.08883
-    fy = (l + 16.0) / 116.0
+    fy = (l_value + 16.0) / 116.0
     fx = a / 500.0 + fy
     fz = fy - b / 200.0
-    
-    x = xn * (fx ** 3 if fx > 0.206897 else (fx - 16.0 / 116.0) / 7.787)
-    y = yn * (fy ** 3 if fy > 0.206897 else (fy - 16.0 / 116.0) / 7.787)
-    z = zn * (fz ** 3 if fz > 0.206897 else (fz - 16.0 / 116.0) / 7.787)
+
+    x = xn * (fx**3 if fx > 0.206897 else (fx - 16.0 / 116.0) / 7.787)
+    y = yn * (fy**3 if fy > 0.206897 else (fy - 16.0 / 116.0) / 7.787)
+    z = zn * (fz**3 if fz > 0.206897 else (fz - 16.0 / 116.0) / 7.787)
     return x, y, z
+
 
 def xyz_to_rgb(x: float, y: float, z: float) -> Tuple[float, float, float]:
     r = x * 3.2406 + y * -1.5372 + z * -0.4986
     g = x * -0.9689 + y * 1.8758 + z * 0.0415
     b = x * 0.0557 + y * -0.2040 + z * 1.0570
-    
+
     rgb = []
     for c in [r, g, b]:
         c = max(0.0, min(1.0, c))
@@ -33,6 +35,7 @@ def xyz_to_rgb(x: float, y: float, z: float) -> Tuple[float, float, float]:
         else:
             rgb.append(1.055 * (c ** (1 / 2.4)) - 0.055)
     return rgb[0], rgb[1], rgb[2]
+
 
 def rgb_to_xyz(r: float, g: float, b: float) -> Tuple[float, float, float]:
     rgb_linear = []
@@ -47,19 +50,22 @@ def rgb_to_xyz(r: float, g: float, b: float) -> Tuple[float, float, float]:
     z = rl * 0.0193 + gl * 0.1192 + bl * 0.9505
     return x, y, z
 
+
 def xyz_to_lab(x: float, y: float, z: float) -> Tuple[float, float, float]:
     xn, yn, zn = 0.95047, 1.00000, 1.08883
-    fx = (x / xn) ** (1/3) if (x / xn) > 0.008856 else 7.787 * (x / xn) + 16.0 / 116.0
-    fy = (y / yn) ** (1/3) if (y / yn) > 0.008856 else 7.787 * (y / yn) + 16.0 / 116.0
-    fz = (z / zn) ** (1/3) if (z / zn) > 0.008856 else 7.787 * (z / zn) + 16.0 / 116.0
-    l = 116.0 * fy - 16.0
+    fx = (x / xn) ** (1 / 3) if (x / xn) > 0.008856 else 7.787 * (x / xn) + 16.0 / 116.0
+    fy = (y / yn) ** (1 / 3) if (y / yn) > 0.008856 else 7.787 * (y / yn) + 16.0 / 116.0
+    fz = (z / zn) ** (1 / 3) if (z / zn) > 0.008856 else 7.787 * (z / zn) + 16.0 / 116.0
+    l_value = 116.0 * fy - 16.0
     a = 500.0 * (fx - fy)
     b = 200.0 * (fy - fz)
-    return l, a, b
+    return l_value, a, b
 
-def lab_to_rgb(l: float, a: float, b: float) -> Tuple[float, float, float]:
-    x, y, z = lab_to_xyz(l, a, b)
+
+def lab_to_rgb(l_value: float, a: float, b: float) -> Tuple[float, float, float]:
+    x, y, z = lab_to_xyz(l_value, a, b)
     return xyz_to_rgb(x, y, z)
+
 
 def rgb_to_hex(r: float, g: float, b: float) -> str:
     ir = int(round(max(0.0, min(1.0, r)) * 255.0))
@@ -70,13 +76,16 @@ def rgb_to_hex(r: float, g: float, b: float) -> str:
 
 # --- Physical Color Mixing ---
 
-def mix_colors_physical_lab(ratios: np.ndarray, base_labs: List[Tuple[float, float, float]]) -> Tuple[float, float, float]:
+
+def mix_colors_physical_lab(
+    ratios: np.ndarray, base_labs: List[Tuple[float, float, float]]
+) -> Tuple[float, float, float]:
     """
     Physically meaningful color mixing using the Kubelka-Munk theory (K/S).
     """
     mixed_K = np.zeros(3)
     mixed_S = np.zeros(3)
-    
+
     # Calculate K and S for each base color
     for w, lab in zip(ratios, base_labs):
         r, g, b = lab_to_rgb(lab[0], lab[1], lab[2])
@@ -85,17 +94,17 @@ def mix_colors_physical_lab(ratios: np.ndarray, base_labs: List[Tuple[float, flo
         rgb_val = np.clip([r, g, b], 0.001, 0.999)
         K = ((1.0 - rgb_val) ** 2) / (2.0 * rgb_val)
         S = np.ones(3)
-        
+
         mixed_K += w * K
         mixed_S += w * S
 
     # Calculate mixed reflectance R = 1 + K/S - sqrt((K/S)^2 + 2K/S)
     theta = mixed_K / (mixed_S + 1e-7)
     theta = np.clip(theta, 0.0, 1000.0)
-    val = theta ** 2 + 2.0 * theta
+    val = theta**2 + 2.0 * theta
     mixed_rgb = 1.0 + theta - np.sqrt(np.clip(val, 0.0, None))
     mixed_rgb = np.clip(mixed_rgb, 0.0, 1.0)
-    
+
     # Convert mixed RGB to LAB
     mx, my, mz = rgb_to_xyz(mixed_rgb[0], mixed_rgb[1], mixed_rgb[2])
     ml, ma, mb = xyz_to_lab(mx, my, mz)
@@ -104,27 +113,30 @@ def mix_colors_physical_lab(ratios: np.ndarray, base_labs: List[Tuple[float, flo
 
 # --- Delta E (CIEDE2000) ---
 
-def calculate_delta_e00(lab1: Tuple[float, float, float], lab2: Tuple[float, float, float]) -> float:
+
+def calculate_delta_e00(
+    lab1: Tuple[float, float, float], lab2: Tuple[float, float, float]
+) -> float:
     L1, a1, b1 = lab1
     L2, a2, b2 = lab2
-    
+
     kL = 1.0
     kC = 1.0
     kH = 1.0
-    
+
     C1 = math.sqrt(a1**2 + b1**2)
     C2 = math.sqrt(a2**2 + b2**2)
-    
+
     C_bar = (C1 + C2) / 2.0
-    
+
     G = 0.5 * (1.0 - math.sqrt(C_bar**7 / (C_bar**7 + 25**7)))
-    
+
     a1_prime = a1 * (1.0 + G)
     a2_prime = a2 * (1.0 + G)
-    
+
     C1_prime = math.sqrt(a1_prime**2 + b1**2)
     C2_prime = math.sqrt(a2_prime**2 + b2**2)
-    
+
     if C1_prime == 0.0:
         h1_prime = 0.0
     else:
@@ -132,7 +144,7 @@ def calculate_delta_e00(lab1: Tuple[float, float, float], lab2: Tuple[float, flo
         if h1_prime < 0:
             h1_prime += 2 * math.pi
         h1_prime = math.degrees(h1_prime)
-        
+
     if C2_prime == 0.0:
         h2_prime = 0.0
     else:
@@ -140,10 +152,10 @@ def calculate_delta_e00(lab1: Tuple[float, float, float], lab2: Tuple[float, flo
         if h2_prime < 0:
             h2_prime += 2 * math.pi
         h2_prime = math.degrees(h2_prime)
-        
+
     dL_prime = L2 - L1
     dC_prime = C2_prime - C1_prime
-    
+
     if C1_prime * C2_prime == 0.0:
         dh_prime = 0.0
     else:
@@ -152,12 +164,14 @@ def calculate_delta_e00(lab1: Tuple[float, float, float], lab2: Tuple[float, flo
             dh_prime -= 360
         elif dh_prime < -180:
             dh_prime += 360
-            
-    dH_prime = 2.0 * math.sqrt(C1_prime * C2_prime) * math.sin(math.radians(dh_prime / 2.0))
-    
+
+    dH_prime = (
+        2.0 * math.sqrt(C1_prime * C2_prime) * math.sin(math.radians(dh_prime / 2.0))
+    )
+
     L_bar_prime = (L1 + L2) / 2.0
     C_bar_prime = (C1_prime + C2_prime) / 2.0
-    
+
     if C1_prime * C2_prime == 0.0:
         h_bar_prime = h1_prime + h2_prime
     else:
@@ -168,31 +182,36 @@ def calculate_delta_e00(lab1: Tuple[float, float, float], lab2: Tuple[float, flo
                 h_bar_prime = (h1_prime + h2_prime + 360.0) / 2.0
             else:
                 h_bar_prime = (h1_prime + h2_prime - 360.0) / 2.0
-                
-    T = (1.0 - 
-         0.17 * math.cos(math.radians(h_bar_prime - 30.0)) + 
-         0.24 * math.cos(math.radians(2.0 * h_bar_prime)) + 
-         0.32 * math.cos(math.radians(3.0 * h_bar_prime + 6.0)) - 
-         0.20 * math.cos(math.radians(4.0 * h_bar_prime - 63.0)))
-         
+
+    T = (
+        1.0
+        - 0.17 * math.cos(math.radians(h_bar_prime - 30.0))
+        + 0.24 * math.cos(math.radians(2.0 * h_bar_prime))
+        + 0.32 * math.cos(math.radians(3.0 * h_bar_prime + 6.0))
+        - 0.20 * math.cos(math.radians(4.0 * h_bar_prime - 63.0))
+    )
+
     dtheta = 30.0 * math.exp(-(((h_bar_prime - 275.0) / 25.0) ** 2))
-    
+
     RC = 2.0 * math.sqrt(C_bar_prime**7 / (C_bar_prime**7 + 25**7))
     RT = -math.sin(math.radians(2.0 * dtheta)) * RC
-    
-    SL = 1.0 + (0.015 * (L_bar_prime - 50.0)**2) / math.sqrt(20.0 + (L_bar_prime - 50.0)**2)
+
+    SL = 1.0 + (0.015 * (L_bar_prime - 50.0) ** 2) / math.sqrt(
+        20.0 + (L_bar_prime - 50.0) ** 2
+    )
     SC = 1.0 + 0.045 * C_bar_prime
     SH = 1.0 + 0.015 * C_bar_prime * T
-    
+
     term_L = dL_prime / (kL * SL)
     term_C = dC_prime / (kC * SC)
     term_H = dH_prime / (kH * SH)
-    
+
     delta_e = math.sqrt(term_L**2 + term_C**2 + term_H**2 + RT * term_C * term_H)
     return delta_e
 
 
 # --- Service Implementations ---
+
 
 class MLService:
     async def predict_ratios(self, request: PredictionRequest) -> List[float]:
@@ -200,10 +219,14 @@ class MLService:
         Predict initial color formulation ratios using an MLP model trained on-the-fly.
         """
         base_colors = request.base_colors
-        target_lab = (request.target_color.lab.L, request.target_color.lab.a, request.target_color.lab.b)
-        
+        target_lab = (
+            request.target_color.lab.L,
+            request.target_color.lab.a,
+            request.target_color.lab.b,
+        )
+
         base_labs = [(c.lab.L, c.lab.a, c.lab.b) for c in base_colors]
-        
+
         # Train a dynamic, fast MLP model on the fly using synthetic samples from these base colors
         X_train = []
         y_train = []
@@ -213,16 +236,16 @@ class MLService:
             mixed_lab = mix_colors_physical_lab(ratios, base_labs)
             X_train.append(mixed_lab)
             y_train.append(ratios)
-            
+
         mlp = MLPRegressor(
             hidden_layer_sizes=(16, 8),
             max_iter=150,
             random_state=42,
             early_stopping=True,
-            validation_fraction=0.1
+            validation_fraction=0.1,
         )
         mlp.fit(X_train, y_train)
-        
+
         predicted = mlp.predict([target_lab])[0]
         predicted = np.clip(predicted, 0.0, 1.0)
         predicted = predicted / (np.sum(predicted) + 1e-9)
@@ -230,18 +253,24 @@ class MLService:
 
 
 class OptimizationService:
-    async def optimize_ratios(self, request: PredictionRequest, seed_ratios: List[float]) -> List[float]:
+    async def optimize_ratios(
+        self, request: PredictionRequest, seed_ratios: List[float]
+    ) -> List[float]:
         """
         Refine ratios using Scipy's Differential Evolution solver.
         """
         if not request.run_optimization:
             return seed_ratios
-            
+
         base_colors = request.base_colors
-        target_lab = (request.target_color.lab.L, request.target_color.lab.a, request.target_color.lab.b)
+        target_lab = (
+            request.target_color.lab.L,
+            request.target_color.lab.a,
+            request.target_color.lab.b,
+        )
         base_labs = [(c.lab.L, c.lab.a, c.lab.b) for c in base_colors]
         num_bases = len(base_colors)
-        
+
         def objective(weights):
             normalized = weights / (np.sum(weights) + 1e-9)
             current_lab = mix_colors_physical_lab(normalized, base_labs)
@@ -258,17 +287,22 @@ class OptimizationService:
             maxiter=100,
             popsize=10,
             tol=0.01,
-            seed=42
+            seed=42,
         )
-        
+
         final_weights = result.x / (np.sum(result.x) + 1e-9)
         return final_weights.tolist()
 
 
 class ExplainabilityService:
-    async def calculate_shap_values(self, request: PredictionRequest, optimized_ratios: List[float]) -> Dict[str, float]:
+    async def calculate_shap_values(
+        self, request: PredictionRequest, optimized_ratios: List[float]
+    ) -> Dict[str, float]:
         # Simple simulated SHAP impact metric
-        return {color.id: 0.15 if i % 2 == 0 else -0.06 for i, color in enumerate(request.base_colors)}
+        return {
+            color.id: 0.15 if i % 2 == 0 else -0.06
+            for i, color in enumerate(request.base_colors)
+        }
 
 
 class PredictionService:
@@ -277,31 +311,37 @@ class PredictionService:
         ml_service: MLService,
         optimizer: OptimizationService,
         explainability: ExplainabilityService,
-        repo: PredictionRepository
+        repo: PredictionRepository,
     ):
         self.ml_service = ml_service
         self.optimizer = optimizer
         self.explainability = explainability
         self.repo = repo
 
-    async def execute_formulation(self, request: PredictionRequest, user_id: uuid.UUID) -> Dict[str, Any]:
+    async def execute_formulation(
+        self, request: PredictionRequest, user_id: uuid.UUID
+    ) -> Dict[str, Any]:
         # Step 1: ML Prediction (MLP)
         seed = await self.ml_service.predict_ratios(request)
-        
+
         # Step 2: Differential Evolution Optimization
         optimized = await self.optimizer.optimize_ratios(request, seed)
-        
+
         # Step 3 & 4: LAB Color Mixing and Delta E Calculation
         base_labs = [(c.lab.L, c.lab.a, c.lab.b) for c in request.base_colors]
         mixed_lab = mix_colors_physical_lab(np.array(optimized), base_labs)
-        
-        target_lab = (request.target_color.lab.L, request.target_color.lab.a, request.target_color.lab.b)
+
+        target_lab = (
+            request.target_color.lab.L,
+            request.target_color.lab.a,
+            request.target_color.lab.b,
+        )
         delta_e = calculate_delta_e00(target_lab, mixed_lab)
-        
+
         # Step 5: Convert LAB -> RGB -> HEX
         rgb_mixed = lab_to_rgb(mixed_lab[0], mixed_lab[1], mixed_lab[2])
         hex_mixed = rgb_to_hex(rgb_mixed[0], rgb_mixed[1], rgb_mixed[2])
-        
+
         # Step 6: Render/Prepare Final Color Preview Metadata
         confidence_score = max(0.0, min(1.0, 1.0 - (delta_e / 15.0)))
 
@@ -316,34 +356,45 @@ class PredictionService:
             match_status = "Needs Optimization"
 
         formulation = {
-            "predicted_rgb": [int(round(rgb_mixed[0] * 255.0)), int(round(rgb_mixed[1] * 255.0)), int(round(rgb_mixed[2] * 255.0))],
+            "predicted_rgb": [
+                int(round(rgb_mixed[0] * 255.0)),
+                int(round(rgb_mixed[1] * 255.0)),
+                int(round(rgb_mixed[2] * 255.0)),
+            ],
             "predicted_hex": hex_mixed,
-            "predicted_lab": [float(np.round(mixed_lab[0], 2)), float(np.round(mixed_lab[1], 2)), float(np.round(mixed_lab[2], 2))],
+            "predicted_lab": [
+                float(np.round(mixed_lab[0], 2)),
+                float(np.round(mixed_lab[1], 2)),
+                float(np.round(mixed_lab[2], 2)),
+            ],
             "ratios": [
                 {
                     "pigment": color.name or color.id,
                     "ratio": float(np.round(optimized[i], 4)),
-                    "weight_grams": float(np.round(optimized[i] * 100.0, 2))
-                } for i, color in enumerate(request.base_colors)
+                    "weight_grams": float(np.round(optimized[i] * 100.0, 2)),
+                }
+                for i, color in enumerate(request.base_colors)
             ],
             "delta_e": float(np.round(delta_e, 2)),
             "confidence": float(np.round(confidence_score * 100.0, 1)),
-            "status": match_status
+            "status": match_status,
         }
 
         # Explainability SHAP contributions
-        shap_values = await self.explainability.calculate_shap_values(request, optimized)
-        
+        shap_values = await self.explainability.calculate_shap_values(
+            request, optimized
+        )
+
         explanation = {
             "shap_values": shap_values,
-            "summary": "Physically realistic Kubelka-Munk mixture optimized to minimize CIEDE2000 color difference."
+            "summary": "Physically realistic Kubelka-Munk mixture optimized to minimize CIEDE2000 color difference.",
         }
 
         return {
             "prediction_id": uuid.uuid4(),
             "target_color": request.target_color.dict(),
             "formulation": formulation,
-            "explanation": explanation
+            "explanation": explanation,
         }
 
 
@@ -355,12 +406,11 @@ class AssistantService:
                 {
                     "title": "Industrial Color Formulation & Kubelka-Munk Theory",
                     "snippet": "Kubelka-Munk equations relate reflectance values of mixtures to the absorption and scattering characteristics of the individual pigments.",
-                    "confidence": 0.99
+                    "confidence": 0.99,
                 }
-            ]
+            ],
         }
 
 
 class AuthService:
     pass
-

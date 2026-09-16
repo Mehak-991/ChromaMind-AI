@@ -3,7 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.routes import router as api_router
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.models.models import User, UserSession, PredictionHistory, UserSettings, Feedback, Analytics, ApiLog
+from app.models.models import (
+    User,
+)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -11,7 +13,7 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
-    openapi_url="/openapi.json"
+    openapi_url="/openapi.json",
 )
 
 # CORS Setup
@@ -26,11 +28,12 @@ app.add_middleware(
 # Register Router
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
+
 @app.on_event("startup")
 async def startup_event():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        
+
 
 
 @app.get("/")
@@ -38,4 +41,3 @@ async def root():
     return {
         "message": f"Welcome to {settings.PROJECT_NAME} API. Access API docs at /docs."
     }
-
